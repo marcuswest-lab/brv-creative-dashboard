@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Build Remote Creative Performance Dashboard &mdash; All Time</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0C0F14;color:#E2E8F0;font-family:'DM Sans',sans-serif;padding:24px 24px 48px}
+.wrap{max-width:1700px;margin:0 auto}
+h1{font-size:28px;font-weight:700;color:#F8FAFC;text-align:center;margin-bottom:4px}
+.subtitle{font-size:14px;color:#94A3B8;text-align:center;margin-bottom:16px}
+.legend{display:flex;justify-content:center;gap:24px;font-size:12px;color:#94A3B8;margin-bottom:20px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot-g{background:#34D399}.dot-y{background:#FBBF24}.dot-r{background:#F87171}.dot-gr{background:#475569}
+.controls{display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.search{width:280px;padding:8px 12px;background:#151922;border:1px solid #334155;border-radius:8px;color:#E2E8F0;font-size:13px;font-family:'DM Sans',sans-serif}
+.search::placeholder{color:#64748B}
+.search:focus{outline:none;border-color:#3B82F6}
+.fbtn{padding:6px 14px;border-radius:8px;border:1px solid #334155;background:transparent;color:#94A3B8;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.fbtn:hover{color:#CBD5E1;border-color:#475569}
+.fbtn.active{background:#334155;color:#E2E8F0;border-color:#475569}
+.tab-bar{display:flex;width:fit-content;max-width:100%;overflow-x:auto;background:#151922;border-radius:10px;border:1px solid #1E293B;margin-bottom:16px}
+.tab{padding:10px 20px;cursor:pointer;color:#64748B;font-size:13px;font-weight:500;border-right:1px solid #1E293B;transition:all .15s;white-space:nowrap;user-select:none}
+.tab:last-child{border-right:none}
+.tab:hover{color:#CBD5E1}
+.tab.active{background:#3B82F6;color:#fff}
+.tab .cnt{opacity:.6;font-size:11px}
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid #1E293B;max-height:calc(100vh - 280px);overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{position:sticky;top:0;background:#151922;color:#94A3B8;font-weight:600;padding:10px;text-align:left;border-bottom:1px solid #1E293B;white-space:nowrap;cursor:pointer;user-select:none;z-index:10;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+thead th:hover{color:#CBD5E1}
+thead th .arr{font-size:10px;margin-left:3px;opacity:.4}
+thead th.sorted .arr{opacity:1;color:#3B82F6}
+tbody td{padding:8px 10px;border-bottom:1px solid #1E293B;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px;color:#CBD5E1}
+tbody tr:hover td{background:#1a1f2e}
+.col-idx{position:sticky;left:0;z-index:5;background:#0C0F14;min-width:36px;text-align:center;color:#475569;font-size:11px}
+.col-name{position:sticky;left:36px;z-index:5;background:#0C0F14;min-width:340px;max-width:420px;overflow:hidden;text-overflow:ellipsis;font-family:'DM Sans',sans-serif;font-weight:500;color:#F8FAFC;font-size:12px}
+.col-style{text-align:left;white-space:nowrap;color:#B8C0CC}
+thead .col-idx{z-index:11;background:#151922}
+thead .col-name{z-index:11;background:#151922}
+tbody tr:hover .col-idx,tbody tr:hover .col-name{background:#1a1f2e}
+.nd{color:#475569}
+.wk{background:rgba(52,211,153,.15);color:#34D399;padding:3px 8px;border-radius:6px;font-weight:500}
+.of{background:rgba(251,191,36,.15);color:#FBBF24;padding:3px 8px;border-radius:6px;font-weight:500}
+.ak{background:rgba(248,113,113,.15);color:#F87171;padding:3px 8px;border-radius:6px;font-weight:500}
+.view-link{color:#60A5FA;text-decoration:none;font-family:'DM Sans',sans-serif;font-size:11px;display:inline-flex;align-items:center;gap:3px}
+.view-link:hover{color:#93C5FD}
+.view-link svg{width:11px;height:11px}
+.row-count{text-align:right;color:#475569;font-size:12px;margin-top:8px}
+
+.cf-wrap{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;padding:10px 12px;background:#151922;border:1px solid #1E293B;border-radius:10px}
+.cf-wrap.collapsed{padding:6px 12px}
+.cf-wrap.collapsed #cf-rows{display:none}
+.cf-header{display:flex;align-items:center;gap:10px;font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px}
+.cf-toggle{display:inline-flex;align-items:center;gap:6px;background:transparent;border:none;color:#94A3B8;font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-family:'DM Sans',sans-serif;cursor:pointer;padding:2px 0}
+.cf-toggle:hover{color:#E2E8F0}
+.cf-caret{display:inline-block;transition:transform .15s;font-size:9px;color:#475569}
+.cf-wrap.collapsed .cf-caret{transform:rotate(-90deg)}
+.cf-count{background:#3B82F6;color:#fff;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;letter-spacing:0}
+.cf-add{padding:5px 12px;background:#1E293B;border:1px solid #334155;border-radius:6px;color:#94A3B8;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.cf-add:hover{color:#E2E8F0;border-color:#475569}
+.cf-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
+.cf-connector{padding:5px 10px;background:#0C0F14;border:1px solid #334155;border-radius:6px;color:#FBBF24;font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;font-weight:600;min-width:64px}
+.cf-select,.cf-input{padding:5px 8px;background:#0C0F14;border:1px solid #334155;border-radius:6px;color:#E2E8F0;font-family:'DM Sans',sans-serif;font-size:12px;outline:none}
+.cf-select:focus,.cf-input:focus,.cf-connector:focus{border-color:#3B82F6}
+.cf-select{cursor:pointer;min-width:130px}
+.cf-op{min-width:60px;cursor:pointer}
+.cf-input{width:100px;font-family:'JetBrains Mono',monospace}
+.cf-remove{padding:4px 8px;background:transparent;border:none;color:#64748B;font-size:14px;cursor:pointer;border-radius:6px;line-height:1}
+.cf-remove:hover{color:#F87171;background:#1a1f2e}
+.cf-empty{color:#475569;font-size:12px;font-style:italic;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Build Remote Creative Performance Dashboard</h1>
+<div class="subtitle">Sep 22 &ndash; Sep 24, 2026 &mdash; Cortana attribution &mdash; Generated September 25, 2026</div>
+<div class="legend" id="legend"></div>
+<div class="controls">
+<input class="search" id="search" placeholder="Search creatives..." type="text">
+<button class="fbtn" id="btnWinners" onclick="toggleFilter('winners')">Winners ($/Booked &le; $50)</button>
+<button class="fbtn" id="btnSpend" onclick="toggleFilter('spend')">Min $500 Spend</button>
+</div>
+
+<div class="cf-wrap" id="cf-wrap">
+<div class="cf-header"><button class="cf-toggle" onclick="toggleCustomFilter()"><span class="cf-caret">&#9660;</span>Custom filters<span class="cf-count" id="cf-count" style="display:none">0</span></button><button class="cf-add" onclick="addCondition()">+ Add condition</button></div>
+<div id="cf-rows"></div>
+</div>
+
+<div class="tab-bar" id="tabBar"></div>
+<div class="tbl-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+<div class="row-count" id="rowCount"></div>
+</div>
+<script>
+const DATA={"videoConcepts": [{"name": "AI Layoffs", "variations": 5, "cost": 703.36, "pageViews": 296.0, "partial": 15.0, "qualApps": 10.0, "booked": 7.0, "live": 2.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 4586.0, "clicks": 174.0, "linkClicks": 113.0, "plays3s": 1255.0, "thruPlays": 522.0, "link": "https://www.facebook.com/?feed_demo_ad=120253774469120184\u0026h=AQIDTBFmttJ-qrOOOesUxDYFICo", "cpPartial": 46.89066666666667, "cpQualApp": 70.336, "cpBooked": 100.48, "showRate": 28.57142857142857, "cpLive": 351.68, "closeRate": 0.0, "cac": null, "roas": 0.0, "ctrAll": 3.794156127344091, "ctrLink": 2.4640209332751852, "cpm": 153.37112952464022, "hookRate": 27.36589620584387, "holdRate": 41.59362549800797}, {"name": "What’s Not Going To Change", "variations": 5, "cost": 687.2500000000001, "pageViews": 190.0, "partial": 8.0, "qualApps": 4.0, "booked": 4.0, "live": 1.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 2718.0, "clicks": 145.0, "linkClicks": 85.0, "plays3s": 773.0, "thruPlays": 339.0, "link": "https://www.facebook.com/?feed_demo_ad=120253774825340184\u0026h=AQLBQzhVr6K6Wc_NpE65SWftbUE", "cpPartial": 85.90625000000001, "cpQualApp": 171.81250000000003, "cpBooked": 171.81250000000003, "showRate": 25.0, "cpLive": 687.2500000000001, "closeRate": 0.0, "cac": null, "roas": 0.0, "ctrAll": 5.334805003679175, "ctrLink": 3.127299484915379, "cpm": 252.85136129506998, "hookRate": 28.440029433406917, "holdRate": 43.855109961190166}], "videos": [{"name": "AI Layoffs - Proclamation Lead 2 - CIDN796VNT", "cost": 559.88, "pageViews": 162.0, "partial": 12.0, "qualApps": 9.0, "booked": 6.0, "live": 2.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 2879.0, "clicks": 156.0, "linkClicks": 102.0, "plays3s": 924.0, "thruPlays": 443.0, "cid": "N796VNT", "cpPartial": 46.656666666666666, "cpQualApp": 62.208888888888886, "cpBooked": 93.31333333333333, "showRate": 33.33333333333333, "cpLive": 279.94, "closeRate": 0.0, "cac": null, "roas": 0.0, "ctrAll": 5.418548106981591, "ctrLink": 3.542896839180271, "cpm": 194.4703021882598, "hookRate": 32.09447724904481, "holdRate": 47.943722943722946, "link": "https://www.facebook.com/?feed_demo_ad=120253774469120184\u0026h=AQIDTBFmttJ-qrOOOesUxDYFICo", "style": "Talking head"}, {"name": "What’s Not Going To Change - Proclamation Lead 3 - CID5V37VBQ", "cost": 506.6900000000001, "pageViews": 114.0, "partial": 6.0, "qualApps": 3.0, "booked": 3.0, "live": 1.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 1820.0, "clicks": 115.0, "linkClicks": 68.0, "plays3s": 561.0, "thruPlays": 248.0, "cid": "5V37VBQ", "cpPartial": 84.44833333333335, "cpQualApp": 168.8966666666667, "cpBooked": 168.8966666666667, "showRate": 33.33333333333333, "cpLive": 506.6900000000001, "closeRate": 0.0, "cac": null, "roas": 0.0, "ctrAll": 6.318681318681318, "ctrLink": 3.7362637362637363, "cpm": 278.401098901099, "hookRate": 30.824175824175825, "holdRate": 44.20677361853833, "link": "https://www.facebook.com/?feed_demo_ad=120253774825340184\u0026h=AQLBQzhVr6K6Wc_NpE65SWftbUE", "style": "Talking head"}, {"name": "AI Layoffs - Proclamation Lead 3 - CID6WD78SX", "cost": 68.83, "pageViews": 43.0, "partial": 1.0, "qualApps": 1.0, "booked": 1.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 1519.0, "clicks": 7.0, "linkClicks": 5.0, "plays3s": 277.0, "thruPlays": 56.0, "cid": "6WD78SX", "cpPartial": 68.83, "cpQualApp": 68.83, "cpBooked": 68.83, "showRate": 0.0, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 0.4608294930875576, "ctrLink": 0.32916392363396973, "cpm": 45.31270572745227, "hookRate": 18.23568136932192, "holdRate": 20.216606498194945, "link": "https://www.facebook.com/?feed_demo_ad=120253774469140184\u0026h=AQKG3MuCrJDjAUr6komBJwdiaFg", "style": "Talking head"}, {"name": "What’s Not Going To Change - Problem-Solution Lead - CIDJRNBAQ3", "cost": 50.02, "pageViews": 13.0, "partial": 0.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 271.0, "clicks": 6.0, "linkClicks": 3.0, "plays3s": 58.0, "thruPlays": 24.0, "cid": "JRNBAQ3", "cpPartial": null, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 2.214022140221402, "ctrLink": 1.107011070110701, "cpm": 184.57564575645756, "hookRate": 21.40221402214022, "holdRate": 41.37931034482759, "link": "https://www.facebook.com/?feed_demo_ad=120253774825260184\u0026h=AQKIcpjPBOVyWSwkrjGwfNF0xXg", "style": "Talking head"}, {"name": "What’s Not Going To Change - Proclamation Lead - CID14N8FGF", "cost": 48.05, "pageViews": 18.0, "partial": 1.0, "qualApps": 1.0, "booked": 1.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 254.0, "clicks": 7.0, "linkClicks": 2.0, "plays3s": 50.0, "thruPlays": 22.0, "cid": "14N8FGF", "cpPartial": 48.05, "cpQualApp": 48.05, "cpBooked": 48.05, "showRate": 0.0, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 2.7559055118110236, "ctrLink": 0.7874015748031495, "cpm": 189.17322834645668, "hookRate": 19.68503937007874, "holdRate": 44.0, "link": "https://www.facebook.com/?feed_demo_ad=120253774825320184\u0026h=AQJMDwLEHw7z7YHxj-ZqyAcoha8", "style": "Talking head"}, {"name": "What’s Not Going To Change - Secret Lead - CIDSMI4WO2", "cost": 41.76, "pageViews": 20.0, "partial": 0.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 178.0, "clicks": 4.0, "linkClicks": 3.0, "plays3s": 55.0, "thruPlays": 20.0, "cid": "SMI4WO2", "cpPartial": null, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 2.247191011235955, "ctrLink": 1.6853932584269662, "cpm": 234.60674157303367, "hookRate": 30.89887640449438, "holdRate": 36.36363636363637, "link": "https://www.facebook.com/?feed_demo_ad=120253774825270184\u0026h=AQL9ZyH80hHBJ5KjfRefhiU8N6s", "style": "Talking head"}, {"name": "AI Layoffs - Problem-Solution Lead - CIDIMD653N", "cost": 41.46, "pageViews": 32.0, "partial": 2.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 112.0, "clicks": 6.0, "linkClicks": 4.0, "plays3s": 31.0, "thruPlays": 11.0, "cid": "IMD653N", "cpPartial": 20.73, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 5.357142857142857, "ctrLink": 3.571428571428571, "cpm": 370.1785714285714, "hookRate": 27.67857142857143, "holdRate": 35.483870967741936, "link": "https://www.facebook.com/?feed_demo_ad=120253774469150184\u0026h=AQKNJizbM78pIA4H6QanexDAonY", "style": "Talking head"}, {"name": "What’s Not Going To Change - Proclamation Lead 2 - CIDA5T42Z2", "cost": 40.73, "pageViews": 25.0, "partial": 1.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 195.0, "clicks": 13.0, "linkClicks": 9.0, "plays3s": 49.0, "thruPlays": 25.0, "cid": "A5T42Z2", "cpPartial": 40.73, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 6.666666666666667, "ctrLink": 4.615384615384616, "cpm": 208.87179487179486, "hookRate": 25.128205128205128, "holdRate": 51.02040816326531, "link": "https://www.facebook.com/?feed_demo_ad=120253774825280184\u0026h=AQLyXyDsmuDoIUj9PmA4M8gyvw8", "style": "Talking head"}, {"name": "AI Layoffs - Proclamation Lead - CIDEMHEJHM", "cost": 21.48, "pageViews": 31.0, "partial": 0.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 43.0, "clicks": 4.0, "linkClicks": 1.0, "plays3s": 14.0, "thruPlays": 9.0, "cid": "EMHEJHM", "cpPartial": null, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 9.30232558139535, "ctrLink": 2.3255813953488373, "cpm": 499.5348837209302, "hookRate": 32.55813953488372, "holdRate": 64.28571428571429, "link": "https://www.facebook.com/?feed_demo_ad=120253774469130184\u0026h=AQIcMcOeXJMEnjlWQ4sKyTuOdSE", "style": "Talking head"}, {"name": "AI Layoffs - Problem-Solution Lead 2 - CIDD4DLNEF", "cost": 11.71, "pageViews": 28.0, "partial": 0.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 33.0, "clicks": 1.0, "linkClicks": 1.0, "plays3s": 9.0, "thruPlays": 3.0, "cid": "D4DLNEF", "cpPartial": null, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 3.0303030303030303, "ctrLink": 3.0303030303030303, "cpm": 354.8484848484849, "hookRate": 27.27272727272727, "holdRate": 33.33333333333333, "link": "https://www.facebook.com/?feed_demo_ad=120253774469090184\u0026h=AQJ8CBShKHtMghZ7ZULtM47VLxc", "style": "Talking head"}], "staticConcepts": [{"name": "DFY Business", "variations": 5, "cost": 663.18, "pageViews": 351.0, "partial": 5.0, "qualApps": 10.0, "booked": 5.0, "live": 3.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 10166.0, "clicks": 149.0, "linkClicks": 87.0, "link": "https://www.facebook.com/?feed_demo_ad=120253773956960184\u0026h=AQLm_-1UWS4hjLSgpkgHtQECyhI", "cpPartial": 132.636, "cpQualApp": 66.318, "cpBooked": 132.636, "showRate": 60.0, "cpLive": 221.05999999999997, "closeRate": 0.0, "cac": null, "roas": 0.0, "ctrAll": 1.4656698799921306, "ctrLink": 0.8557938225457408, "cpm": 65.23509738343498}, {"name": "AI Hit List", "variations": 6, "cost": 582.6800000000001, "pageViews": 286.0, "partial": 3.0, "qualApps": 1.0, "booked": 2.0, "live": 1.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 7445.0, "clicks": 128.0, "linkClicks": 101.0, "link": "https://www.facebook.com/?feed_demo_ad=120253772884690184\u0026h=AQIec7v2mcwiLmf9pZsipboK8QI", "cpPartial": 194.2266666666667, "cpQualApp": 582.6800000000001, "cpBooked": 291.34000000000003, "showRate": 50.0, "cpLive": 582.6800000000001, "closeRate": 0.0, "cac": null, "roas": 0.0, "ctrAll": 1.7192746809939559, "ctrLink": 1.3566151779717932, "cpm": 78.26460711887174}], "statics": [{"name": "DFY Business - Problem-Solution Lead - CID6S9ZKI7", "cost": 379.57, "pageViews": 150.0, "partial": 4.0, "qualApps": 9.0, "booked": 4.0, "live": 2.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 8692.0, "clicks": 102.0, "linkClicks": 66.0, "cid": "6S9ZKI7", "cpPartial": 94.8925, "cpQualApp": 42.17444444444445, "cpBooked": 94.8925, "showRate": 50.0, "cpLive": 189.785, "closeRate": 0.0, "cac": null, "roas": 0.0, "ctrAll": 1.1734928670041418, "ctrLink": 0.7593189139438564, "cpm": 43.668890934192355, "link": "https://www.facebook.com/?feed_demo_ad=120253773956960184\u0026h=AQLm_-1UWS4hjLSgpkgHtQECyhI", "style": "Headline + Image"}, {"name": "AI Hit List - Headline + Image 6 - CIDEK46573", "cost": 264.01, "pageViews": 60.0, "partial": 0.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 1474.0, "clicks": 41.0, "linkClicks": 26.0, "cid": "EK46573", "cpPartial": null, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 2.7815468113975577, "ctrLink": 1.7639077340569878, "cpm": 179.1112618724559, "link": "https://www.facebook.com/?feed_demo_ad=120253772884690184\u0026h=AQIec7v2mcwiLmf9pZsipboK8QI", "style": "Headline + Image"}, {"name": "DFY Business - Proclamation Lead - CIDJW0UJIE", "cost": 193.74, "pageViews": 59.0, "partial": 0.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 867.0, "clicks": 30.0, "linkClicks": 11.0, "cid": "JW0UJIE", "cpPartial": null, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 3.4602076124567476, "ctrLink": 1.2687427912341407, "cpm": 223.46020761245674, "link": "https://www.facebook.com/?feed_demo_ad=120253773956980184\u0026h=AQLn0vBF2drzNvLszWcFJTpppBk", "style": "Headline + Image"}, {"name": "AI Hit List - Headline + Image 4 - CIDDCRJXRI", "cost": 120.72, "pageViews": 76.0, "partial": 1.0, "qualApps": 1.0, "booked": 1.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 5003.0, "clicks": 56.0, "linkClicks": 55.0, "cid": "DCRJXRI", "cpPartial": 120.72, "cpQualApp": 120.72, "cpBooked": 120.72, "showRate": 0.0, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 1.119328402958225, "ctrLink": 1.0993403957625425, "cpm": 24.129522286628024, "link": "https://www.facebook.com/?feed_demo_ad=120253773821670184\u0026h=AQKOeAdNLARy1676vsgC5FNtsGY", "style": "Headline + Image"}, {"name": "AI Hit List - Headline + Image 1 - CIDAKEEWKV", "cost": 92.66, "pageViews": 52.0, "partial": 2.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 425.0, "clicks": 17.0, "linkClicks": 12.0, "cid": "AKEEWKV", "cpPartial": 46.33, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 4.0, "ctrLink": 2.823529411764706, "cpm": 218.0235294117647, "link": "https://www.facebook.com/?feed_demo_ad=120253772608140184\u0026h=AQKHO6LjKTSlnSLUNk2xlXJfy4M", "style": "Headline + Image"}, {"name": "AI Hit List - Headline + Image 5 - CID9217TS1", "cost": 59.8, "pageViews": 31.0, "partial": 0.0, "qualApps": 0.0, "booked": 1.0, "live": 1.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 292.0, "clicks": 8.0, "linkClicks": 5.0, "cid": "9217TS1", "cpPartial": null, "cpQualApp": null, "cpBooked": 59.8, "showRate": 100.0, "cpLive": 59.8, "closeRate": 0.0, "cac": null, "roas": 0.0, "ctrAll": 2.73972602739726, "ctrLink": 1.7123287671232876, "cpm": 204.79452054794518, "link": "https://www.facebook.com/?feed_demo_ad=120253773821660184\u0026h=AQJ1WR0L4Kg8M4YbMZtgx9j5czA", "style": "Headline + Image"}, {"name": "DFY Business - Offer Lead - CID1LWG4Q9", "cost": 51.75, "pageViews": 53.0, "partial": 1.0, "qualApps": 1.0, "booked": 1.0, "live": 1.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 367.0, "clicks": 6.0, "linkClicks": 3.0, "cid": "1LWG4Q9", "cpPartial": 51.75, "cpQualApp": 51.75, "cpBooked": 51.75, "showRate": 100.0, "cpLive": 51.75, "closeRate": 0.0, "cac": null, "roas": 0.0, "ctrAll": 1.6348773841961852, "ctrLink": 0.8174386920980926, "cpm": 141.00817438692098, "link": "https://www.facebook.com/?feed_demo_ad=120253773956950184\u0026h=AQLR6dyx1k668vjFX2vDBi7BC4w", "style": "Headline + Image"}, {"name": "AI Hit List - Headline + Image 2 - CID9XVSTA3", "cost": 35.34, "pageViews": 34.0, "partial": 0.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 180.0, "clicks": 3.0, "linkClicks": 1.0, "cid": "9XVSTA3", "cpPartial": null, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 1.6666666666666667, "ctrLink": 0.5555555555555556, "cpm": 196.33333333333337, "link": "https://www.facebook.com/?feed_demo_ad=120253773821630184\u0026h=AQJ5StUlisPx1t2Mjr0LDiDyoIg", "style": "Headline + Image"}, {"name": "DFY Business - Proclamation Lead 2 - CIDVSHCFVO", "cost": 19.55, "pageViews": 43.0, "partial": 0.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 83.0, "clicks": 2.0, "linkClicks": 1.0, "cid": "VSHCFVO", "cpPartial": null, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 2.4096385542168677, "ctrLink": 1.2048192771084338, "cpm": 235.5421686746988, "link": "https://www.facebook.com/?feed_demo_ad=120253773956880184\u0026h=AQIlFbTF3CcNMXvkFTmtyg-2O3Y", "style": "Headline + Image"}, {"name": "DFY Business - Offer Lead 2 - CIDIBX7UCX", "cost": 18.57, "pageViews": 46.0, "partial": 0.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 157.0, "clicks": 9.0, "linkClicks": 6.0, "cid": "IBX7UCX", "cpPartial": null, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 5.7324840764331215, "ctrLink": 3.821656050955414, "cpm": 118.28025477707006, "link": "https://www.facebook.com/?feed_demo_ad=120253773956970184\u0026h=AQKgS0yY91C-V8A3asn_mChXOKk", "style": "Headline + Image"}, {"name": "AI Hit List - Headline + Image 3 - CID7MHELN9", "cost": 10.15, "pageViews": 33.0, "partial": 0.0, "qualApps": 0.0, "booked": 0.0, "live": 0.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 71.0, "clicks": 3.0, "linkClicks": 2.0, "cid": "7MHELN9", "cpPartial": null, "cpQualApp": null, "cpBooked": null, "showRate": null, "cpLive": null, "closeRate": null, "cac": null, "roas": 0.0, "ctrAll": 4.225352112676056, "ctrLink": 2.8169014084507045, "cpm": 142.95774647887325, "link": "https://www.facebook.com/?feed_demo_ad=120253773821640184\u0026h=AQJisMehRxUUacsw8R3DzRx_-h8", "style": "Headline + Image"}], "copy": [{"name": "AI Layoffs Copy", "cost": 1408.08, "pageViews": 586.0, "partial": 19.0, "qualApps": 14.0, "booked": 11.0, "live": 4.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 10732.0, "clicks": 326.0, "linkClicks": 231.0, "cid": null, "cpPartial": 74.10947368421053, "cpQualApp": 100.57714285714285, "cpBooked": 128.00727272727272, "showRate": 36.36363636363637, "cpLive": 352.02, "closeRate": 0.0, "cac": null, "roas": 0.0, "ctrAll": 3.03764442787924, "ctrLink": 2.152441297055535, "cpm": 131.20387625792023, "link": "https://www.facebook.com/?feed_demo_ad=120253774469120184\u0026h=AQIDTBFmttJ-qrOOOesUxDYFICo"}, {"name": "DFY Business Copy", "cost": 1228.39, "pageViews": 537.0, "partial": 12.0, "qualApps": 11.0, "booked": 7.0, "live": 3.0, "payments": 0.0, "newRev": 0.0, "ltv": 0.0, "impressions": 14183.0, "clicks": 270.0, "linkClicks": 155.0, "cid": null, "cpPartial": 102.36583333333334, "cpQualApp": 111.6718181818182, "cpBooked": 175.48428571428573, "showRate": 42.857142857142854, "cpLive": 409.46333333333337, "closeRate": 0.0, "cac": null, "roas": 0.0, "ctrAll": 1.9036875132200524, "ctrLink": 1.092857646478178, "cpm": 86.61002608756964, "link": "https://www.facebook.com/?feed_demo_ad=120253773956960184\u0026h=AQLm_-1UWS4hjLSgpkgHtQECyhI"}]};
+const TABS=[
+ {key:'videoConcepts',label:'Video Concepts',isVideo:true,isConcept:true},
+ {key:'videos',label:'Video Ads',isVideo:true},
+ {key:'staticConcepts',label:'Static Concepts',isVideo:false,isConcept:true},
+ {key:'statics',label:'Static Ads',isVideo:false},
+ {key:'copy',label:'Copy',isVideo:false,isCopy:true}
+];
+// KPI color bands. lo = lower is better, hi = higher is better. Sourced from the
+// Sept 2026 launch projections (target / worst case) — adjust here only.
+const KPI={
+ cpPartial:{dir:'lo',g:20,y:40},
+ cpBooked:{dir:'lo',g:50,y:100},
+ cpLive:{dir:'lo',g:167,y:333},
+ cac:{dir:'lo',g:1667,y:3333},
+ showRate:{dir:'hi',g:40,y:30},
+ closeRate:{dir:'hi',g:10,y:7.5},
+ roas:{dir:'hi',g:4,y:2.84},
+ hookRate:{dir:'hi',g:20,y:15},
+ holdRate:{dir:'hi',g:20,y:15}
+};
+const WINNER_MAX=50;
+let curTab=0,sortCol='cost',sortAsc=false,filters={winners:false,spend:false};
+function badge(v,k){
+ if(v==null)return'nd';const t=KPI[k];if(!t)return'';
+ if(t.dir==='lo')return v<=t.g?'wk':v<=t.y?'of':'ak';
+ return v>=t.g?'wk':v>=t.y?'of':'ak';
+}
+const ND='<span class="nd">&mdash;</span>';
+function num(v,kind){
+ if(v==null)return null;
+ if(kind==='money2')return'$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+ if(kind==='money0')return'$'+Math.round(v).toLocaleString('en-US');
+ if(kind==='pct')return v.toFixed(1)+'%';
+ if(kind==='roas')return v.toFixed(2)+'x';
+ return Math.round(v).toLocaleString('en-US');
+}
+function cell(v,c){
+ const s=num(v,c.fmt);if(s==null)return ND;
+ const b=c.badge?badge(v,c.badge):'';
+ return b?'<span class="'+b+'">'+s+'</span>':s;
+}
+function fmtLink(url){
+ if(!url)return ND;
+ return'<a class="view-link" href="'+url.replace(/\u0026/g,'&')+'" target="_blank" rel="noopener">View <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1h7v7M11 1L4.5 7.5"/></svg></a>';
+}
+function buildLegend(){
+ const t=TABS[curTab];
+ const items=[
+  ['g','$/Booked &le; $50'],['y','$/Booked $50&ndash;100'],['r','$/Booked &gt; $100'],
+  ['g','Show &ge; 40%'],['y','Show 30&ndash;40%'],['r','Show &lt; 30%']
+ ];
+ if(t.isVideo)items.push(['g','Hook/Hold &ge; 20%'],['y','Hook/Hold 15&ndash;20%'],['r','Hook/Hold &lt; 15%']);
+ items.push(['gr','No Data']);
+ document.getElementById('legend').innerHTML=items.map(i=>'<div class="legend-item"><span class="dot dot-'+i[0]+'"></span>'+i[1]+'</div>').join('');
+}
+function buildTabs(){
+ document.getElementById('tabBar').innerHTML=TABS.map((t,i)=>'<div class="tab'+(i===curTab?' active':'')+'" onclick="switchTab('+i+')">'+t.label+' <span class="cnt">('+(DATA[t.key]||[]).length+')</span></div>').join('');
+}
+function getCols(){
+ const t=TABS[curTab];
+ let cols=[
+  {key:'idx',label:'#',sortable:false,cls:'col-idx'},
+  {key:'name',label:t.isConcept?'Concept':'Name',sortable:true,cls:'col-name'}
+ ];
+ if(t.isConcept)cols.push({key:'variations',label:'Variations',sortable:true});
+ else if(!t.isCopy)cols.push({key:'style',label:'Style',sortable:true,cls:'col-style'});
+ cols.push(
+  {key:'link',label:'Ad',sortable:false},
+  {key:'cost',label:'Spend',sortable:true,fmt:'money2'},
+  {key:'pageViews',label:'Page Views',sortable:true},
+  {key:'partial',label:'Partial Submits',sortable:true},
+  {key:'cpPartial',label:'$/Partial',sortable:true,fmt:'money0',badge:'cpPartial'},
+  {key:'qualApps',label:'Qual Apps',sortable:true},
+  {key:'cpQualApp',label:'$/Qual App',sortable:true,fmt:'money0'},
+  {key:'booked',label:'Booked',sortable:true},
+  {key:'cpBooked',label:'$/Booked',sortable:true,fmt:'money0',badge:'cpBooked'},
+  {key:'showRate',label:'Show %',sortable:true,fmt:'pct',badge:'showRate'},
+  {key:'live',label:'Live Calls',sortable:true},
+  {key:'cpLive',label:'$/Live Call',sortable:true,fmt:'money0',badge:'cpLive'},
+  {key:'closeRate',label:'Close %',sortable:true,fmt:'pct',badge:'closeRate'},
+  {key:'payments',label:'Payments',sortable:true},
+  {key:'cac',label:'CAC',sortable:true,fmt:'money0',badge:'cac'},
+  {key:'newRev',label:'New Revenue',sortable:true,fmt:'money0'},
+  {key:'roas',label:'ROAS',sortable:true,fmt:'roas',badge:'roas'}
+ );
+ if(t.isVideo)cols.push(
+  {key:'hookRate',label:'Hook %',sortable:true,fmt:'pct',badge:'hookRate'},
+  {key:'holdRate',label:'Hold %',sortable:true,fmt:'pct',badge:'holdRate'}
+ );
+ cols.push(
+  {key:'ctrAll',label:'CTR (all)',sortable:true,fmt:'pct'},
+  {key:'ctrLink',label:'CTR (link)',sortable:true,fmt:'pct'},
+  {key:'cpm',label:'CPM',sortable:true,fmt:'money2'},
+  {key:'impressions',label:'Impr',sortable:true},
+  {key:'clicks',label:'Clicks',sortable:true},
+  {key:'linkClicks',label:'Link Clicks',sortable:true}
+ );
+ if(t.isVideo)cols.push({key:'thruPlays',label:'ThruPlays',sortable:true});
+ return cols;
+}
+function renderTable(){
+ const t=TABS[curTab];
+ const cols=getCols();
+ const data=(DATA[t.key]||[]).slice();
+ const q=document.getElementById('search').value.toLowerCase();
+ let filtered=data.filter(r=>{
+  if(q&&!r.name.toLowerCase().includes(q))return false;
+  if(filters.spend&&(r.cost==null||r.cost<500))return false;
+  if(filters.winners&&(r.cpBooked==null||r.cpBooked>WINNER_MAX))return false;
+  return true;
+ });
+ filtered = (typeof __cfConditions!=='undefined' && Array.isArray(__cfConditions) && typeof __cfEval==='function') ? filtered.filter(__cfEval) : filtered;
+ filtered.sort((a,b)=>{
+  let va=a[sortCol],vb=b[sortCol];
+  if(va==null&&vb==null)return 0;
+  if(va==null)return 1;
+  if(vb==null)return -1;
+  if(typeof va==='string')return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
+  return sortAsc?va-vb:vb-va;
+ });
+ let th='<tr>';
+ cols.forEach(c=>{
+  const sorted=c.key===sortCol;
+  const arr=sorted?(sortAsc?'&#9650;':'&#9660;'):'&#9650;';
+  const cls=((c.cls||'')+(sorted?' sorted':'')).trim();
+  if(c.sortable)th+='<th class="'+cls+'" onclick="doSort(\''+c.key+'\')">'+c.label+'<span class="arr">'+arr+'</span></th>';
+  else th+='<th class="'+cls+'">'+c.label+'</th>';
+ });
+ document.getElementById('thead').innerHTML=th+'</tr>';
+ let tb='';
+ filtered.forEach((r,i)=>{
+  tb+='<tr>';
+  cols.forEach(c=>{
+   const cls=c.cls||'';
+   if(c.key==='idx'){tb+='<td class="'+cls+'">'+(i+1)+'</td>';return;}
+   if(c.key==='name'){tb+='<td class="'+cls+'" title="'+(r.name||'').replace(/"/g,'&quot;')+'">'+(r.name||'')+'</td>';return;}
+   if(c.key==='style'){tb+='<td class="'+cls+'">'+(r.style||ND)+'</td>';return;}
+   if(c.key==='link'){tb+='<td>'+fmtLink(r.link)+'</td>';return;}
+   tb+='<td>'+cell(r[c.key],c)+'</td>';
+  });
+  tb+='</tr>';
+ });
+ document.getElementById('tbody').innerHTML=tb;
+ document.getElementById('rowCount').textContent=filtered.length+' of '+data.length+(t.isConcept?' concepts':' creatives');
+}
+function switchTab(i){curTab=i;sortCol='cost';sortAsc=false;buildTabs();buildLegend();renderTable();}
+function doSort(col){if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=(col==='name');}renderTable();}
+function toggleFilter(f){filters[f]=!filters[f];document.getElementById(f==='winners'?'btnWinners':'btnSpend').classList.toggle('active');renderTable();}
+document.getElementById('search').addEventListener('input',renderTable);
+buildTabs();buildLegend();renderTable();
+
+// ===== Custom filters (AND/OR) =====
+var __cfConditions = [];
+function __cfGetMetrics(){
+  try{
+    var cols = getCols();
+    // A filterable metric = any keyed column that isn't the name/index column
+    // and isn't explicitly non-sortable. Handles both column shapes: dashboards
+    // that tag cols with sortable:true/false (TCC/CEO/DH/Quintessa) and those
+    // that omit the flag entirely (Case Source uses {key,label,fmt}).
+    return cols.filter(function(c){
+      return c && c.key && c.key!=='name' && c.key!=='idx' && c.sortable!==false;
+    });
+  }catch(e){return [];}
+}
+function addCondition(){
+  __cfConditions.push({metric:'',op:'gte',val:null,connector:'AND'});
+  var w=document.getElementById('cf-wrap'); if(w) w.classList.remove('collapsed');
+  __cfRender();
+}
+function removeCondition(i){__cfConditions.splice(i,1); __cfRender(); if(window.__cfOrigRender) window.__cfOrigRender();}
+function updateCondition(i,field,value){
+  if(field==='val') value = (value===''?null:parseFloat(value));
+  __cfConditions[i][field]=value;
+  __cfUpdateCount();
+  if(window.__cfOrigRender) window.__cfOrigRender();
+}
+function toggleCustomFilter(){var w=document.getElementById('cf-wrap'); if(w) w.classList.toggle('collapsed');}
+function __cfUpdateCount(){
+  var active=__cfConditions.filter(function(c){return c.metric&&c.val!=null;}).length;
+  var b=document.getElementById('cf-count');
+  if(!b) return;
+  if(active>0){b.textContent=active; b.style.display='inline-block';}
+  else{b.style.display='none';}
+}
+function __cfRender(){
+  var cols=__cfGetMetrics();
+  var host=document.getElementById('cf-rows');
+  if(!host) return;
+  if(!__cfConditions.length){host.innerHTML='<div class="cf-empty">No conditions \u2014 click \u201C+ Add condition\u201D to filter by any metric.</div>'; __cfUpdateCount(); return;}
+  var html='';
+  __cfConditions.forEach(function(c,i){
+    html+='<div class="cf-row">';
+    if(i===0){html+='<span class="cf-connector" style="background:transparent;border:none;color:#475569;cursor:default;text-align:right">WHERE</span>';}
+    else{
+      html+='<select class="cf-connector" onchange="updateCondition('+i+',\'connector\',this.value)">';
+      html+='<option value="AND"'+(c.connector==='AND'?' selected':'')+'>AND</option>';
+      html+='<option value="OR"'+(c.connector==='OR'?' selected':'')+'>OR</option>';
+      html+='</select>';
+    }
+    html+='<select class="cf-select" onchange="updateCondition('+i+',\'metric\',this.value)">';
+    html+='<option value="">Metric...</option>';
+    cols.forEach(function(col){html+='<option value="'+col.key+'"'+(c.metric===col.key?' selected':'')+'>'+col.label+'</option>';});
+    html+='</select>';
+    html+='<select class="cf-select cf-op" onchange="updateCondition('+i+',\'op\',this.value)">';
+    html+='<option value="gte"'+(c.op==='gte'?' selected':'')+'>\u2265</option>';
+    html+='<option value="gt"'+(c.op==='gt'?' selected':'')+'>></option>';
+    html+='<option value="lte"'+(c.op==='lte'?' selected':'')+'>\u2264</option>';
+    html+='<option value="lt"'+(c.op==='lt'?' selected':'')+'><</option>';
+    html+='</select>';
+    html+='<input type="number" step="any" class="cf-input" placeholder="value" value="'+(c.val==null?'':c.val)+'" oninput="updateCondition('+i+',\'val\',this.value)">';
+    html+='<button class="cf-remove" onclick="removeCondition('+i+')" title="Remove">\u2715</button>';
+    html+='</div>';
+  });
+  host.innerHTML=html;
+  __cfUpdateCount();
+}
+function __cfEval(r){
+  if(!__cfConditions.length) return true;
+  var active=__cfConditions.filter(function(c){return c.metric&&c.val!=null;});
+  if(!active.length) return true;
+  var result=null;
+  for(var i=0;i<active.length;i++){
+    var c=active[i]; var v=r[c.metric]; var ok;
+    if(v==null) ok=false;
+    else if(c.op==='gte') ok=v>=c.val;
+    else if(c.op==='gt')  ok=v>c.val;
+    else if(c.op==='lte') ok=v<=c.val;
+    else if(c.op==='lt')  ok=v<c.val;
+    else ok=false;
+    if(result===null) result=ok;
+    else if(c.connector==='OR') result=result||ok;
+    else result=result&&ok;
+  }
+  return result===null?true:result;
+}
+
+window.__cfOrigRender = (typeof renderTable === 'function') ? renderTable
+                       : ((typeof render === 'function') ? render : null);
+(function(){
+  if(typeof switchTab === 'function'){
+    var __cfOrigSwitch = switchTab;
+    switchTab = function(){var r = __cfOrigSwitch.apply(this, arguments); __cfRender(); return r;};
+  }
+  __cfRender();
+})();
+</script>
+</body></html>
